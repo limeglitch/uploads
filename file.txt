@@ -1,25 +1,31 @@
 name: CI
-
 on: [push, workflow_dispatch]
-
 jobs:
   build:
-
     runs-on: windows-latest
-
     steps:
-    - name: Download
-      run: Invoke-WebRequest https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-windows-amd64.zip -OutFile ngrok.zip
-    - name: Extract
-      run: Expand-Archive ngrok.zip
-    - name: Auth
-      run: .\ngrok\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN
+    - name: Download Playit
+      run: Invoke-WebRequest https://github.com/playit-cloud/playit-agent/releases/latest/download/playit-windows.tar.gz -OutFile playit.tar.gz
+
+    - name: Extract Playit
+      run: tar -xvzf playit.tar.gz
+
+    - name: Auth Playit
+      run: .\playit.exe authtoken $Env:PLAYIT_AUTH_TOKEN
       env:
-        NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
-    - name: Enable TS
-      run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server'-name "fDenyTSConnections" -Value 0
-    - run: Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-    - run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
-    - run: Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "P@ssw0rd!" -Force)
-    - name: Create Tunnel
-      run: .\ngrok\ngrok.exe tcp 3389
+        PLAYIT_AUTH_TOKEN: ${{ secrets.PLAYIT_AUTH_TOKEN }}
+
+    - name: Enable TS (Terminal Services)
+      run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
+
+    - name: Enable Remote Desktop in Firewall
+      run: Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+
+    - name: Enable User Authentication for RDP
+      run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
+
+    - name: Set Password for runneradmin
+      run: Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "P@ssw0rd!" -Force)
+
+    - name: Create Tunnel on port 7771
+      run: .\playit.exe open-tunnel --port 7771
